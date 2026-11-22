@@ -1,5 +1,5 @@
 (function () {
-  var VERSION = "1.2.1";
+  var VERSION = "2.0.0";
   var hasTizen = typeof tizen !== "undefined";
   var DAYS = ["SUNDAY","MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY"];
   var MONTHS = ["JANUARY","FEBRUARY","MARCH","APRIL","MAY","JUNE","JULY","AUGUST",
@@ -257,7 +257,7 @@
       sc.src = "js/screensaver.js?v=" + VERSION;
       document.body.appendChild(sc);
     }
-    if (!document.querySelector('link[href*="style.css?v="]')) {
+    if (!document.querySelector('link[href*="style.css"]')) {
       var l = document.createElement("link");
       l.rel = "stylesheet"; l.href = "css/style.css?v=" + VERSION;
       document.head.appendChild(l);

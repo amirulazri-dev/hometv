@@ -4,60 +4,80 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=1920, user-scalable=no">
 <title>Home TV</title>
-<link rel="stylesheet" href="css/style.css?v=1.2.1">
+<style>
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden;
+               background: #12060c; color: #fff; font-family: "SamsungOne", Arial, sans-serif; }
+  #boot { position: absolute; top: 500px; left: 0; right: 0; text-align: center; font-size: 32px; opacity: 0.6; }
+</style>
 </head>
 <body>
-<div id="bg"></div>
-<div id="bg-glow"></div>
+<div id="boot">Loading Home TV…</div>
+<script>
+/*
+ * Home TV loader. This small file stays the same forever.
+ * It loads the real home screen (main.html + css + js) fresh from GitHub Pages,
+ * so changes you commit on GitHub reach the TV within a few minutes.
+ * If GitHub Pages can't be reached, it falls back to the copy bundled with the module.
+ */
+(function () {
+  var SOURCES = [
+    "https://amirulazri-dev.github.io/hometv/app/",   // live site (GitHub Pages)
+    ""                                               // bundled copy (same folder)
+  ];
+  var stamp = Date.now();
 
-<header id="top">
-  <div id="clock-block">
-    <div id="greeting">GOOD EVENING</div>
-    <div id="clock-row">
-      <div id="clock"><span id="hhmm">--:--</span><span id="ampm"></span></div>
-      <div id="divider"></div>
-      <div id="date-block">
-        <div id="date">—</div>
-        <div id="hijri"></div>
-      </div>
-    </div>
-  </div>
-</header>
+  function get(url, ok, fail) {
+    var x = new XMLHttpRequest();
+    x.open("GET", url, true);
+    x.timeout = 10000;
+    x.onload = function () { (x.status >= 200 && x.status < 300) ? ok(x.responseText) : fail(); };
+    x.onerror = x.ontimeout = fail;
+    x.send();
+  }
 
-<section id="prayer">
-  <div id="prayer-head">
-    <span id="prayer-title">WAKTU SOLAT · SENAWANG</span>
-    <span id="next-prayer"></span>
-  </div>
-  <div id="prayer-list"></div>
-</section>
+  function full(base, url) {
+    var u = /^https?:/.test(url) ? url : base + url;
+    return u + (u.indexOf("?") === -1 ? "?" : "&") + "t=" + stamp;
+  }
 
-<section id="featured">
-  <div id="featured-name">Netflix</div>
-  <div id="featured-sub"></div>
-</section>
+  function tryFrom(i) {
+    if (i >= SOURCES.length) {
+      document.getElementById("boot").textContent = "Could not load Home TV. Check the internet connection.";
+      return;
+    }
+    var base = SOURCES[i];
+    get(full(base, "main.html"), function (html) { start(base, html); }, function () { tryFrom(i + 1); });
+  }
 
-<section id="apps"></section>
+  function start(base, html) {
+    var doc = new DOMParser().parseFromString(html, "text/html");
 
-<div id="screensaver">
-  <div id="ss-img0" class="ss-img"></div>
-  <div id="ss-img1" class="ss-img"></div>
-  <div id="ss-shade"></div>
-  <div id="ss-top">
-    <div id="ss-clock">--:--</div>
-    <div id="ss-next"></div>
-  </div>
-  <div id="ss-caption">
-    <div id="ss-kind"></div>
-    <div id="ss-title"></div>
-    <div id="ss-desc"></div>
-  </div>
-  <div id="ss-credit">Photo &amp; text: Wikipedia</div>
-</div>
+    var links = doc.querySelectorAll('link[rel="stylesheet"]');
+    for (var i = 0; i < links.length; i++) {
+      var l = document.createElement("link");
+      l.rel = "stylesheet";
+      l.href = full(base, links[i].getAttribute("href"));
+      document.head.appendChild(l);
+    }
 
-<script src="js/config.js?v=1.2.1"></script>
-<script src="js/screensaver.js?v=1.2.1"></script>
-<script src="js/prayer.js?v=1.2.1"></script>
-<script src="js/app.js?v=1.2.1"></script>
+    var srcs = [], scripts = doc.body.querySelectorAll("script[src]");
+    for (var j = 0; j < scripts.length; j++) {
+      srcs.push(scripts[j].getAttribute("src"));
+      scripts[j].parentNode.removeChild(scripts[j]);
+    }
+    document.body.innerHTML = doc.body.innerHTML;
+
+    (function next(k) {
+      if (k >= srcs.length) return;
+      var s = document.createElement("script");
+      s.src = full(base, srcs[k]);
+      s.onload = s.onerror = function () { next(k + 1); };
+      document.body.appendChild(s);
+    })(0);
+  }
+
+  tryFrom(0);
+})();
+</script>
 </body>
 </html>
