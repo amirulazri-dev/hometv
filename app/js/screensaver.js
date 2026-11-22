@@ -113,7 +113,7 @@ var Screensaver = (function () {
   var active = false, order = [], pos = 0, timer = null, layer = 0;
   var cache = {};   // title -> { imgs, desc } or false
   var lastError = "";
-  var reasons = { noimage: 0, notphoto: 0, portrait: 0, missing: 0, badreply: 0 };
+  var reasons = { noimage: 0, notphoto: 0, portrait: 0, missing: 0, badreply: 0, sample: "" };
 
   function $(id) { return document.getElementById(id); }
 
@@ -131,7 +131,8 @@ var Screensaver = (function () {
   function pickImages(page) {
     var orig = page.original, thumb = page.thumbnail, out = [];
     if (!orig || !orig.source) { reasons.noimage++; return null; }
-    if (!/\.(jpe?g|webp)$/i.test(orig.source)) { reasons.notphoto++; return null; }  // maps/logos
+    var path = orig.source.split("?")[0];
+    if (/\.(svg|gif)$/i.test(path)) { reasons.notphoto++; reasons.sample = path.slice(-40); return null; }  // maps/logos
     if (orig.height > orig.width * 1.1) { reasons.portrait++; return null; }
     if (thumb && thumb.source) {
       out.push(thumb.source);                                    // ~1920px from the API
@@ -193,7 +194,8 @@ var Screensaver = (function () {
 
   function reasonText() {
     return "No photo yet: " + reasons.noimage + " no image, " + reasons.notphoto + " not photo, " +
-      reasons.portrait + " portrait, " + reasons.missing + " missing, " + reasons.badreply + " bad reply";
+      reasons.portrait + " portrait, " + reasons.missing + " missing, " + reasons.badreply + " bad reply" +
+      (reasons.sample ? "  [" + reasons.sample + "]" : "");
   }
 
   // find the next item that has a usable photo, preload it, then call show
