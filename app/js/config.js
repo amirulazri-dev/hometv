@@ -19,8 +19,8 @@ var CONFIG = {
   // World food & places screensaver
   SCREENSAVER: {
     enabled: true,
-    idleMinutes: 5,      // start after this many minutes with no remote button press
-    changeSeconds: 60    // change photo every 60 seconds
+    idleMinutes: 1,      // start after this many minutes with no remote button press
+    changeSeconds: 5    // change photo every 60 seconds
   },
 
   APPS: [
