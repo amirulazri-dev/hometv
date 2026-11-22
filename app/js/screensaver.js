@@ -111,7 +111,8 @@ var WORLD = [
 
 var Screensaver = (function () {
   var active = false, order = [], pos = 0, timer = null, layer = 0;
-  var cache = {};   // title -> { img, desc } or false
+  var cache = {};   // title -> { imgs, desc } or false
+  var lastError = "";
 
   function $(id) { return document.getElementById(id); }
 
@@ -125,16 +126,32 @@ var Screensaver = (function () {
     pos = 0;
   }
 
-  // Pick a ~1920px-wide image URL from a Wikipedia summary
-  function pickImage(json) {
-    var orig = json.originalimage, thumb = json.thumbnail;
+  // Image URLs to try for a Wikipedia summary: big first, smaller as backup
+  function pickImages(json) {
+    var orig = json.originalimage, thumb = json.thumbnail, out = [];
     if (!orig || !orig.source) return null;
     if (!/\.(jpe?g|webp)$/i.test(orig.source)) return null;      // skip maps/logos (svg/png)
     if (orig.width < orig.height) return null;                   // skip portrait photos
-    if (orig.width > 1920 && thumb && thumb.source && thumb.source.indexOf("/thumb/") !== -1) {
-      return thumb.source.replace(/\/\d+px-/, "/1920px-");
+    if (thumb && thumb.source && thumb.source.indexOf("/thumb/") !== -1) {
+      var sizes = [1920, 1280, 960];
+      for (var i = 0; i < sizes.length; i++) {
+        if (orig.width > sizes[i]) out.push(thumb.source.replace(/\/\d+px-/, "/" + sizes[i] + "px-"));
+      }
     }
-    return orig.source;
+    if (orig.width <= 4000) out.push(orig.source);
+    if (thumb && thumb.source) out.push(thumb.source);
+    return out.length ? out : null;
+  }
+
+  function status(msg) {
+    var el = document.getElementById("ss-status");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "ss-status";
+      el.style.cssText = "position:absolute;left:100px;top:70px;font-size:24px;opacity:0.7;text-shadow:0 2px 10px #000";
+      document.getElementById("screensaver").appendChild(el);
+    }
+    el.textContent = msg || "";
   }
 
   function firstSentence(text) {
@@ -154,30 +171,39 @@ var Screensaver = (function () {
       var info = false;
       if (x.status === 200) {
         try {
-          var j = JSON.parse(x.responseText), img = pickImage(j);
-          if (img) info = { img: img, desc: firstSentence(j.extract) };
+          var j = JSON.parse(x.responseText), imgs = pickImages(j);
+          if (imgs) info = { imgs: imgs, desc: firstSentence(j.extract) };
         } catch (e) {}
       }
+      if (x.status !== 200) lastError = "Wikipedia replied " + x.status;
       cache[item.t] = info;
       done(info);
     };
-    x.onerror = x.ontimeout = function () { done(false); };
+    x.onerror = function () { lastError = "Can't reach Wikipedia (network)"; done(false); };
+    x.ontimeout = function () { lastError = "Wikipedia timed out"; done(false); };
     x.send();
   }
 
   // find the next item that has a usable photo, preload it, then call show
   function next(tries) {
     if (!active) return;
-    if (tries > 12) { scheduleNext(); return; }   // offline or no images: try again later
+    if (tries > 12) { status(lastError || "No photo available right now"); scheduleNext(); return; }
     if (pos >= order.length) shuffle();
     var item = WORLD[order[pos++]];
     fetchItem(item, function (info) {
       if (!active) return;
       if (!info) return next(tries + 1);
-      var im = new Image();
-      im.onload = function () { show(item, info); scheduleNext(); };
-      im.onerror = function () { cache[item.t] = false; next(tries + 1); };
-      im.src = info.img;
+      (function load(k) {
+        if (k >= info.imgs.length) {
+          lastError = "Photos are not loading (image blocked?)";
+          cache[item.t] = false;
+          return next(tries + 1);
+        }
+        var im = new Image();
+        im.onload = function () { info.img = info.imgs[k]; info.imgs = [info.imgs[k]]; show(item, info); scheduleNext(); };
+        im.onerror = function () { load(k + 1); };
+        im.src = info.imgs[k];
+      })(0);
     });
   }
 
@@ -198,6 +224,7 @@ var Screensaver = (function () {
     $("ss-title").textContent = item.t.replace(/ \((food|cake)\)$/, "");
     $("ss-desc").textContent = info.desc;
     $("ss-caption").className = "show";
+    status("");
   }
 
   function start() {
@@ -205,6 +232,7 @@ var Screensaver = (function () {
     active = true;
     if (!order.length) shuffle();
     $("screensaver").className = "show";
+    status("Loading photo…");
     next(0);
   }
 
