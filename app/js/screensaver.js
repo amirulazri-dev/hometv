@@ -113,6 +113,7 @@ var Screensaver = (function () {
   var active = false, order = [], pos = 0, timer = null, layer = 0;
   var cache = {};   // title -> { imgs, desc } or false
   var lastError = "";
+  var reasons = { noimage: 0, notphoto: 0, portrait: 0, missing: 0, badreply: 0 };
 
   function $(id) { return document.getElementById(id); }
 
@@ -126,20 +127,20 @@ var Screensaver = (function () {
     pos = 0;
   }
 
-  // Image URLs to try for a Wikipedia summary: big first, smaller as backup
-  function pickImages(json) {
-    var orig = json.originalimage, thumb = json.thumbnail, out = [];
-    if (!orig || !orig.source) return null;
-    if (!/\.(jpe?g|webp)$/i.test(orig.source)) return null;      // skip maps/logos (svg/png)
-    if (orig.width < orig.height) return null;                   // skip portrait photos
-    if (thumb && thumb.source && thumb.source.indexOf("/thumb/") !== -1) {
-      var sizes = [1920, 1280, 960];
-      for (var i = 0; i < sizes.length; i++) {
-        if (orig.width > sizes[i]) out.push(thumb.source.replace(/\/\d+px-/, "/" + sizes[i] + "px-"));
+  // Image URLs to try: big first, smaller as backup
+  function pickImages(page) {
+    var orig = page.original, thumb = page.thumbnail, out = [];
+    if (!orig || !orig.source) { reasons.noimage++; return null; }
+    if (!/\.(jpe?g|webp)$/i.test(orig.source)) { reasons.notphoto++; return null; }  // maps/logos
+    if (orig.height > orig.width * 1.1) { reasons.portrait++; return null; }
+    if (thumb && thumb.source) {
+      out.push(thumb.source);                                    // ~1920px from the API
+      if (thumb.source.indexOf("/thumb/") !== -1) {
+        out.push(thumb.source.replace(/\/\d+px-/, "/1280px-"));
+        out.push(thumb.source.replace(/\/\d+px-/, "/960px-"));
       }
     }
     if (orig.width <= 4000) out.push(orig.source);
-    if (thumb && thumb.source) out.push(thumb.source);
     return out.length ? out : null;
   }
 
@@ -163,19 +164,25 @@ var Screensaver = (function () {
 
   function fetchItem(item, done) {
     if (cache[item.t] !== undefined) return done(cache[item.t]);
+    var url = "https://en.wikipedia.org/w/api.php?action=query&format=json&formatversion=2" +
+      "&origin=*&redirects=1&prop=pageimages%7Cextracts&piprop=original%7Cthumbnail" +
+      "&pithumbsize=1920&exintro=1&explaintext=1&exsentences=2&titles=" + encodeURIComponent(item.t);
     var x = new XMLHttpRequest();
-    x.open("GET", "https://en.wikipedia.org/api/rest_v1/page/summary/" +
-      encodeURIComponent(item.t.replace(/ /g, "_")), true);
+    x.open("GET", url, true);
     x.timeout = 10000;
     x.onload = function () {
       var info = false;
       if (x.status === 200) {
         try {
-          var j = JSON.parse(x.responseText), imgs = pickImages(j);
-          if (imgs) info = { imgs: imgs, desc: firstSentence(j.extract) };
-        } catch (e) {}
-      }
-      if (x.status !== 200) lastError = "Wikipedia replied " + x.status;
+          var j = JSON.parse(x.responseText);
+          var page = j && j.query && j.query.pages && j.query.pages[0];
+          if (!page || page.missing) reasons.missing++;
+          else {
+            var imgs = pickImages(page);
+            if (imgs) info = { imgs: imgs, desc: firstSentence(page.extract) };
+          }
+        } catch (e) { reasons.badreply++; }
+      } else { lastError = "Wikipedia replied " + x.status; }
       cache[item.t] = info;
       done(info);
     };
@@ -184,10 +191,15 @@ var Screensaver = (function () {
     x.send();
   }
 
+  function reasonText() {
+    return "No photo yet: " + reasons.noimage + " no image, " + reasons.notphoto + " not photo, " +
+      reasons.portrait + " portrait, " + reasons.missing + " missing, " + reasons.badreply + " bad reply";
+  }
+
   // find the next item that has a usable photo, preload it, then call show
   function next(tries) {
     if (!active) return;
-    if (tries > 12) { status(lastError || "No photo available right now"); scheduleNext(); return; }
+    if (tries > 12) { status(lastError || reasonText()); scheduleNext(); return; }
     if (pos >= order.length) shuffle();
     var item = WORLD[order[pos++]];
     fetchItem(item, function (info) {
