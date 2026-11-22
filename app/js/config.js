@@ -16,6 +16,13 @@ var CONFIG = {
   PRAYER_PLACE: "SENAWANG",
   USE_24H: false,
 
+  // World food & places screensaver
+  SCREENSAVER: {
+    enabled: true,
+    idleMinutes: 5,      // start after this many minutes with no remote button press
+    changeSeconds: 60    // change photo every 60 seconds
+  },
+
   APPS: [
     { name: "Netflix",     match: ["netflix"],               ids: ["3201907018807", "11101200001"],
       bg: "#8a0f24", card: { bg: "#ffffff", fg: "#e50914" }, label: "NETFLIX", font: "bold" },

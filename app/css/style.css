@@ -98,3 +98,36 @@ html, body {
   background: rgba(0,0,0,0.75); opacity: 0; transition: opacity 0.3s ease;
 }
 #flash.show { opacity: 1; }
+
+/* ---------- world screensaver ---------- */
+#screensaver {
+  position: absolute; top: 0; left: 0; width: 1920px; height: 1080px;
+  background: #000; opacity: 0; visibility: hidden;
+  transition: opacity 1s ease, visibility 1s; z-index: 50; overflow: hidden;
+}
+#screensaver.show { opacity: 1; visibility: visible; }
+.ss-img {
+  position: absolute; top: 0; left: 0; width: 1920px; height: 1080px;
+  background-size: cover; background-position: center;
+  opacity: 0; transition: opacity 1.5s ease;
+}
+.ss-img.show { opacity: 1; }
+.ss-img.zoom { -webkit-animation: sszoom 60s linear forwards; animation: sszoom 60s linear forwards; }
+@-webkit-keyframes sszoom { from { -webkit-transform: scale(1); } to { -webkit-transform: scale(1.08); } }
+@keyframes sszoom { from { transform: scale(1); } to { transform: scale(1.08); } }
+#ss-shade {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0) 28%, rgba(0,0,0,0) 55%, rgba(0,0,0,0.75) 100%);
+}
+#ss-top { position: absolute; top: 60px; right: 100px; text-align: right; text-shadow: 0 2px 16px rgba(0,0,0,0.6); }
+#ss-clock { font-size: 110px; font-weight: 300; line-height: 1; }
+#ss-next { font-size: 30px; font-weight: 600; margin-top: 12px; }
+#ss-caption {
+  position: absolute; left: 100px; bottom: 90px; width: 1300px;
+  text-shadow: 0 2px 16px rgba(0,0,0,0.7); opacity: 0; transition: opacity 1s ease;
+}
+#ss-caption.show { opacity: 1; }
+#ss-kind { font-size: 24px; letter-spacing: 6px; font-weight: 600; opacity: 0.85; }
+#ss-title { font-size: 84px; font-weight: 600; margin-top: 8px; }
+#ss-desc { font-size: 28px; line-height: 1.4; margin-top: 10px; opacity: 0.9; }
+#ss-credit { position: absolute; right: 100px; bottom: 50px; font-size: 18px; opacity: 0.55; }

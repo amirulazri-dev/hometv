@@ -33,6 +33,7 @@
     $("hhmm").textContent = fmtTime(now, false);
     $("ampm").textContent = CONFIG.USE_24H ? "" : (now.getHours() < 12 ? "AM" : "PM");
     $("date").textContent = DAYS[now.getDay()] + " " + now.getDate() + " " + MONTHS[now.getMonth()];
+    $("ss-clock").textContent = fmtTime(now, true);
     if (now.getDate() !== lastDay) { lastDay = now.getDate(); loadPrayer(); }
     renderPrayer(now);
   }
@@ -80,6 +81,7 @@
       var mins = Math.max(0, Math.ceil((nextTime - now) / 60000));
       var h = Math.floor(mins / 60), m = mins % 60;
       $("next-prayer").textContent = nextLabel + " in " + (h ? h + "h " : "") + m + "m";
+      $("ss-next").textContent = nextLabel + " " + fmtTime(nextTime, true) + "  ·  in " + (h ? h + "h " : "") + m + "m";
     } else {
       $("next-prayer").textContent = "";
     }
@@ -192,7 +194,11 @@
     $("apps").style.transform = "translateX(" + (-shift) + "px)";
   }
 
+  var lastInput = Date.now();
+
   function onKey(e) {
+    lastInput = Date.now();
+    if (Screensaver.isActive()) { Screensaver.stop(); e.preventDefault(); return; }
     switch (e.keyCode) {
       case 37: if (col > 0) col--; break;                       // left
       case 39: if (col < cards.length - 1) col++; break;        // right
@@ -220,15 +226,27 @@
     });
   }
 
+  function checkIdle() {
+    var ss = CONFIG.SCREENSAVER;
+    if (!ss || !ss.enabled || document.hidden || Screensaver.isActive()) return;
+    if (Date.now() - lastInput >= ss.idleMinutes * 60000) Screensaver.start();
+  }
+
   function init() {
     buildCards();
     applyFocus();
     tick();
     setInterval(tick, 15000);
+    setInterval(checkIdle, 10000);
     document.addEventListener("keydown", onKey);
     loadInstalled(10);
     // when we come back from another app, refresh the clock immediately
-    document.addEventListener("visibilitychange", function () { if (!document.hidden) tick(); });
+    document.addEventListener("visibilitychange", function () {
+      if (!document.hidden) { lastInput = Date.now(); tick(); }
+      else Screensaver.stop();
+    });
+    // PC preview: index.html?demo&ss opens the screensaver straight away
+    if (/[?&]ss\b/.test(location.search)) setTimeout(Screensaver.start, 500);
   }
 
   init();
