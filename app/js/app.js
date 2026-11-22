@@ -1,10 +1,13 @@
 (function () {
+  var VERSION = "1.2.1";
   var hasTizen = typeof tizen !== "undefined";
   var DAYS = ["SUNDAY","MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY"];
   var MONTHS = ["JANUARY","FEBRUARY","MARCH","APRIL","MAY","JUNE","JULY","AUGUST",
                 "SEPTEMBER","OCTOBER","NOVEMBER","DECEMBER"];
 
-  var $ = function (id) { return document.getElementById(id); };
+  var $ = function (id) {
+    return document.getElementById(id) || { textContent: "", innerHTML: "", className: "", style: {}, classList: { add: function () {}, remove: function () {} } };
+  };
   var installed = [];         // [{id, name}] from the TV
   var cards = [];             // DOM nodes for app cards
   var col = 0;
@@ -198,7 +201,7 @@
 
   function onKey(e) {
     lastInput = Date.now();
-    if (Screensaver.isActive()) { Screensaver.stop(); e.preventDefault(); return; }
+    if (ssActive()) { window.Screensaver.stop(); e.preventDefault(); return; }
     switch (e.keyCode) {
       case 37: if (col > 0) col--; break;                       // left
       case 39: if (col < cards.length - 1) col++; break;        // right
@@ -227,12 +230,44 @@
   }
 
   function checkIdle() {
-    var ss = CONFIG.SCREENSAVER;
-    if (!ss || !ss.enabled || document.hidden || Screensaver.isActive()) return;
-    if (Date.now() - lastInput >= ss.idleMinutes * 60000) Screensaver.start();
+    var ss = CONFIG.SCREENSAVER || { enabled: true, idleMinutes: 5, changeSeconds: 60 };
+    CONFIG.SCREENSAVER = ss;
+    if (!ss || !ss.enabled || document.hidden || !window.Screensaver || ssActive()) return;
+    if (Date.now() - lastInput >= ss.idleMinutes * 60000) window.Screensaver.start();
   }
 
+  var SS_HTML =
+    '<div id="ss-img0" class="ss-img"></div><div id="ss-img1" class="ss-img"></div>' +
+    '<div id="ss-shade"></div>' +
+    '<div id="ss-top"><div id="ss-clock">--:--</div><div id="ss-next"></div></div>' +
+    '<div id="ss-caption"><div id="ss-kind"></div><div id="ss-title"></div><div id="ss-desc"></div></div>' +
+    '<div id="ss-credit">Photo &amp; text: Wikipedia</div>';
+
+  function ensurePage() {
+    var old = document.getElementById("pills");          // old "Samsung Home" button
+    if (old && old.parentNode) old.parentNode.removeChild(old);
+    if (!document.getElementById("screensaver")) {
+      var d = document.createElement("div");
+      d.id = "screensaver";
+      d.innerHTML = SS_HTML;
+      document.body.appendChild(d);
+    }
+    if (typeof window.Screensaver === "undefined") {
+      var sc = document.createElement("script");
+      sc.src = "js/screensaver.js?v=" + VERSION;
+      document.body.appendChild(sc);
+    }
+    if (!document.querySelector('link[href*="style.css?v="]')) {
+      var l = document.createElement("link");
+      l.rel = "stylesheet"; l.href = "css/style.css?v=" + VERSION;
+      document.head.appendChild(l);
+    }
+  }
+
+  function ssActive() { return !!(window.Screensaver && window.Screensaver.isActive()); }
+
   function init() {
+    ensurePage();
     buildCards();
     applyFocus();
     tick();
@@ -243,10 +278,10 @@
     // when we come back from another app, refresh the clock immediately
     document.addEventListener("visibilitychange", function () {
       if (!document.hidden) { lastInput = Date.now(); tick(); }
-      else Screensaver.stop();
+      else if (window.Screensaver) window.Screensaver.stop();
     });
     // PC preview: index.html?demo&ss opens the screensaver straight away
-    if (/[?&]ss\b/.test(location.search)) setTimeout(Screensaver.start, 500);
+    if (/[?&]ss\b/.test(location.search)) setTimeout(function () { if (window.Screensaver) window.Screensaver.start(); }, 800);
   }
 
   init();
