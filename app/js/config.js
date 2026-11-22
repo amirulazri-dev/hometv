@@ -20,7 +20,7 @@ var CONFIG = {
   SCREENSAVER: {
     enabled: true,
     idleMinutes: 1,      // start after this many minutes with no remote button press
-    changeSeconds: 5    // change photo every 60 seconds
+    changeSeconds: 30    // change photo every 60 seconds
   },
 
   APPS: [
