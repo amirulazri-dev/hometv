@@ -1,0 +1,100 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 1920px; height: 1080px; overflow: hidden;
+  background: #12060c; color: #fff;
+  font-family: "SamsungOneUI", "SamsungOne", "Samsung Sans", "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+#bg {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  background: radial-gradient(ellipse at 30% 45%, #8a0f24 0%, #12060c 75%);
+  transition: background 0.6s ease;
+}
+#bg-glow {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0) 35%, rgba(0,0,0,0.55) 100%);
+}
+
+/* ---------- header ---------- */
+#top {
+  position: absolute; top: 70px; left: 120px; right: 120px;
+  display: flex; justify-content: space-between; align-items: flex-start;
+}
+#greeting {
+  font-size: 30px; letter-spacing: 8px; font-weight: 600; opacity: 0.9;
+}
+#clock-row { display: flex; align-items: center; margin-top: 10px; }
+#clock { display: flex; align-items: baseline; }
+#hhmm { font-size: 150px; font-weight: 300; letter-spacing: -2px; line-height: 1; }
+#ampm { font-size: 40px; font-weight: 600; margin-left: 14px; }
+#divider { width: 3px; height: 90px; background: rgba(255,255,255,0.45); margin: 0 40px; }
+#date { font-size: 34px; letter-spacing: 4px; font-weight: 600; }
+#hijri { font-size: 26px; margin-top: 10px; opacity: 0.75; letter-spacing: 1px; }
+
+#pills { display: flex; margin-top: 8px; }
+#pills .pill { margin-left: 18px; }
+.pill {
+  padding: 16px 30px; border-radius: 40px; font-size: 26px; font-weight: 600;
+  background: rgba(255,255,255,0.12); border: 2px solid rgba(255,255,255,0.25);
+  transition: all 0.2s ease;
+}
+.pill.focused { background: #fff; color: #111; transform: scale(1.06); }
+
+/* ---------- prayer times ---------- */
+#prayer {
+  position: absolute; top: 330px; left: 120px; right: 120px;
+}
+#prayer-head { display: flex; align-items: baseline; margin-bottom: 18px; }
+#prayer-title { margin-right: 30px; }
+#prayer-title { font-size: 24px; letter-spacing: 6px; font-weight: 600; opacity: 0.8; }
+#next-prayer {
+  font-size: 26px; font-weight: 600; padding: 6px 20px; border-radius: 30px;
+  background: rgba(255,255,255,0.18);
+}
+#next-prayer:empty { display: none; }
+#prayer-list { display: flex; }
+.p-item { margin-right: 18px; }
+.p-item {
+  width: 236px; padding: 18px 24px; border-radius: 22px; white-space: nowrap;
+  background: rgba(0,0,0,0.28); border: 2px solid rgba(255,255,255,0.12);
+}
+.p-item.minor { opacity: 0.6; }
+.p-item.next { background: rgba(255,255,255,0.92); color: #1a0a10; border-color: #fff; }
+.p-name { font-size: 24px; font-weight: 600; opacity: 0.85; }
+.p-time { font-size: 36px; font-weight: 600; margin-top: 6px; }
+.p-empty { font-size: 26px; opacity: 0.7; }
+
+/* ---------- featured title ---------- */
+#featured { position: absolute; left: 120px; top: 610px; }
+#featured-name { font-size: 96px; font-weight: 400; letter-spacing: 1px; text-shadow: 0 4px 30px rgba(0,0,0,0.4); }
+
+/* ---------- app cards ---------- */
+#apps {
+  position: absolute; left: 140px; top: 790px;
+  display: flex; white-space: nowrap;
+  transition: transform 0.35s ease;
+}
+.card {
+  flex: 0 0 auto; margin-right: 56px;
+  width: 360px; height: 200px; border-radius: 30px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 52px; font-weight: 600; letter-spacing: -0.5px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  opacity: 0.82;
+}
+.card.bold { font-weight: 900; letter-spacing: 1px; font-size: 64px; }
+.card.focused {
+  transform: scale(1.12); opacity: 1;
+  box-shadow: 0 0 0 6px #fff, 0 20px 50px rgba(0,0,0,0.55);
+}
+
+/* ---------- toast ---------- */
+#flash {
+  position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
+  padding: 16px 34px; border-radius: 30px; font-size: 26px;
+  background: rgba(0,0,0,0.75); opacity: 0; transition: opacity 0.3s ease;
+}
+#flash.show { opacity: 1; }
