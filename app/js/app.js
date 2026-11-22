@@ -7,7 +7,7 @@
   var $ = function (id) { return document.getElementById(id); };
   var installed = [];         // [{id, name}] from the TV
   var cards = [];             // DOM nodes for app cards
-  var row = 1, col = 0;       // row 0 = top pills, row 1 = app cards
+  var col = 0;
   var today = null, tomorrow = null, lastDay = -1;
 
   function pad(n) { return (n < 10 ? "0" : "") + n; }
@@ -113,25 +113,57 @@
     }
   }
 
+  var HELPER = "http://127.0.0.1:8095";
+
+  function xhr(method, url, ok, fail) {
+    var x = new XMLHttpRequest();
+    x.open(method, url, true);
+    x.timeout = 4000;
+    x.onload = function () {
+      if (x.status >= 200 && x.status < 300) {
+        var data = null;
+        try { data = JSON.parse(x.responseText); } catch (e) {}
+        ok(data);
+      } else { fail(x.status); }
+    };
+    x.onerror = function () { fail(0); };
+    x.ontimeout = function () { fail(0); };
+    x.send();
+  }
+
+  function launchOne(id, ok, fail) {
+    // 1) Tizen API (only when running as an installed app)
+    if (hasTizen) {
+      try { tizen.application.launch(id, ok, function () { viaHelper(); }); return; }
+      catch (e) {}
+    }
+    viaHelper();
+
+    // 2) Home TV helper running inside TizenBrew
+    function viaHelper() {
+      xhr("GET", HELPER + "/launch?id=" + encodeURIComponent(id), ok, function (status) {
+        if (status === 0) viaRemoteApi(); else fail();
+      });
+    }
+    // 3) The TV's own remote-control API (same one phone remote apps use)
+    function viaRemoteApi() {
+      xhr("POST", "http://127.0.0.1:8001/api/v2/applications/" + encodeURIComponent(id),
+        ok, function (status) { if (status === 0) ok(); else fail(); });
+    }
+  }
+
   function launch(app) {
-    if (!hasTizen) { flash("Preview: would open " + app.name); return; }
     var ids = [];
     var found = findInstalled(app);
     if (found) ids.push(found);
     for (var i = 0; i < app.ids.length; i++) if (ids.indexOf(app.ids[i]) === -1) ids.push(app.ids[i]);
     if (!ids.length) { flash(app.name + " is not installed"); return; }
 
+    flash("Opening " + app.name + "…");
     (function tryId(k) {
       if (k >= ids.length) { flash("Could not open " + app.name); return; }
-      try {
-        tizen.application.launch(ids[k], function () {}, function () { tryId(k + 1); });
-      } catch (e) { tryId(k + 1); }
+      launchOne(ids[k], function () {}, function () { tryId(k + 1); });
     })(0);
-  }
-
-  function samsungHome() {
-    if (!hasTizen) { flash("Preview: would show Samsung Home"); return; }
-    try { tizen.application.getCurrentApplication().hide(); } catch (e) {}
   }
 
   var flashTimer = null;
@@ -148,10 +180,6 @@
   function applyFocus() {
     var all = document.querySelectorAll(".focusable");
     for (var i = 0; i < all.length; i++) all[i].classList.remove("focused");
-    if (row === 0) {
-      document.querySelector(".pill").classList.add("focused");
-      return;
-    }
     var c = cards[col];
     c.classList.add("focused");
     var a = CONFIG.APPS[col];
@@ -166,13 +194,9 @@
 
   function onKey(e) {
     switch (e.keyCode) {
-      case 37: if (row === 1 && col > 0) col--; break;                       // left
-      case 39: if (row === 1 && col < cards.length - 1) col++; break;        // right
-      case 38: row = 0; break;                                               // up
-      case 40: row = 1; break;                                               // down
-      case 13:                                                               // OK
-        if (row === 0) samsungHome(); else launch(CONFIG.APPS[col]);
-        break;
+      case 37: if (col > 0) col--; break;                       // left
+      case 39: if (col < cards.length - 1) col++; break;        // right
+      case 13: launch(CONFIG.APPS[col]); break;                              // OK
       case 10009: e.preventDefault(); return;                                // Back: stay
       default: return;
     }
@@ -180,14 +204,20 @@
     applyFocus();
   }
 
-  function loadInstalled(done) {
-    if (!hasTizen) return done();
-    try {
-      tizen.application.getAppsInfo(function (list) {
-        installed = list.map(function (a) { return { id: a.id, name: a.name }; });
-        done();
-      }, function () { done(); });
-    } catch (e) { done(); }
+  function loadInstalled(tries) {
+    if (hasTizen) {
+      try {
+        tizen.application.getAppsInfo(function (list) {
+          installed = list.map(function (a) { return { id: a.id, name: a.name }; });
+        }, function () {});
+        return;
+      } catch (e) {}
+    }
+    xhr("GET", HELPER + "/apps", function (list) {
+      if (list && list.length) installed = list;
+    }, function () {
+      if (tries > 0) setTimeout(function () { loadInstalled(tries - 1); }, 3000);
+    });
   }
 
   function init() {
@@ -196,7 +226,7 @@
     tick();
     setInterval(tick, 15000);
     document.addEventListener("keydown", onKey);
-    loadInstalled(function () {});
+    loadInstalled(10);
     // when we come back from another app, refresh the clock immediately
     document.addEventListener("visibilitychange", function () { if (!document.hidden) tick(); });
   }

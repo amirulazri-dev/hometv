@@ -1,9 +1,10 @@
 {
   "name": "hometv",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Clean home screen with clock and Senawang prayer times (JAKIM).",
   "packageType": "app",
   "appName": "Home TV",
   "appPath": "app/index.html",
-  "keys": []
+  "keys": [],
+  "serviceFile": "service.js"
 }
